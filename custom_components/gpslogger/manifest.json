@@ -1,0 +1,11 @@
+{
+  "domain": "gpslogger",
+  "name": "GPSLogger",
+  "codeowners": ["@pnbruckner"],
+  "config_flow": true,
+  "dependencies": ["webhook"],
+  "documentation": "https://github.com/pnbruckner/ha-gpslogger/blob/master/README.md",
+  "iot_class": "cloud_push",
+  "issue_tracker": "https://github.com/pnbruckner/ha-gpslogger/issues",
+  "version": "1.0.0b0"
+}
