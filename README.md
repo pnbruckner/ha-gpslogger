@@ -10,26 +10,38 @@ Also, `last_seen` is important when dealing with packets received out of order f
 e.g., due to network delays.
 
 ## Installation
-### With HACS
+
+<details>
+<summary>With HACS</summary>
+
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/)
 
 You can use HACS to manage the installation and provide update notifications.
 
-1. Add this repo as a [custom repository](https://hacs.xyz/docs/faq/custom_repositories/):
+1. Add this repo as a [custom repository](https://hacs.xyz/docs/faq/custom_repositories/).
+   It should then appear as a new integration. Click on it. If necessary, search for "gpslogger".
 
-```text
-https://github.com/pnbruckner/ha-gpslogger
-```
+   ```text
+   https://github.com/pnbruckner/ha-gpslogger
+   ```
+   Or use this button:
+   
+   [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=pnbruckner&repository=ha-gpslogger&category=integration)
 
-2. Install the integration using the appropriate button on the HACS Integrations page. Search for "gpslogger".
+1. Download the integration using the appropriate button.
 
-### Manual
+</details>
+
+<details>
+<summary>Manual</summary>
 
 Place a copy of the files from [`custom_components/gpslogger`](custom_components/gpslogger)
 in `<config>/custom_components/gpslogger`,
 where `<config>` is your Home Assistant configuration directory.
 
 >__NOTE__: When downloading, make sure to use the `Raw` button from each file's page.
+
+</details>
 
 ## Setup
 
