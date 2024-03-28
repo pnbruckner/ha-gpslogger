@@ -13,11 +13,15 @@ from homeassistant.const import (
     ATTR_LATITUDE,
     ATTR_LONGITUDE,
     CONF_WEBHOOK_ID,
+    EVENT_HOMEASSISTANT_STOP,
     Platform,
 )
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_entry_flow
-import homeassistant.helpers.config_validation as cv
+from homeassistant.core import Event, HomeAssistant
+from homeassistant.helpers import (
+    config_entry_flow,
+    config_validation as cv,
+    entity_registry as er,
+)
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import (
@@ -108,7 +112,24 @@ async def handle_webhook(hass, webhook_id, request):
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Configure based on config entry."""
-    hass.data.setdefault(DOMAIN, {"devices": set(), "warned_no_last_seen": False})
+
+    async def device_work_around(_: Event):
+        """Work around for device tracker component deleting devices.
+
+        The device tracker component level code, at startup, deletes devices that are
+        associated only with device_tracker entities. Not only that, it will delete
+        those device_tracker entities from the entity registry as well. So, when HA
+        shuts down, remove references to devices from our device_tracker entity registry
+        entries. They'll get set back up automatically the next time our config is
+        loaded (i.e., setup.)
+        """
+        ent_reg = er.async_get(hass)
+        for r_entry in ent_reg.entities.get_entries_for_config_entry_id(entry.entry_id):
+            ent_reg.async_update_entity(r_entry.entity_id, device_id=None)
+
+    if DOMAIN not in hass.data:
+        hass.data[DOMAIN] = {"devices": set(), "warned_no_last_seen": False}
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, device_work_around)
     webhook.async_register(
         hass, DOMAIN, "GPSLogger", entry.data[CONF_WEBHOOK_ID], handle_webhook
     )
