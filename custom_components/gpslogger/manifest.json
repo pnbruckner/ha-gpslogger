@@ -4,8 +4,8 @@
   "codeowners": ["@pnbruckner"],
   "config_flow": true,
   "dependencies": ["webhook"],
-  "documentation": "https://github.com/pnbruckner/ha-gpslogger/blob/1.0.0/README.md",
+  "documentation": "https://github.com/pnbruckner/ha-gpslogger/blob/1.0.1/README.md",
   "iot_class": "cloud_push",
   "issue_tracker": "https://github.com/pnbruckner/ha-gpslogger/issues",
-  "version": "1.0.0"
+  "version": "1.0.1"
 }
