@@ -1,9 +1,10 @@
 """Support for the GPSLogger device tracking."""
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime
 import logging
-from typing import cast
+from typing import Any, cast
 
 from homeassistant.components.device_tracker import SourceType, TrackerEntity
 from homeassistant.config_entries import ConfigEntry
@@ -41,7 +42,13 @@ async def async_setup_entry(
     """Configure a dispatcher connection based on a config entry."""
 
     @callback
-    def _receive_data(device, gps, battery, accuracy, attrs):
+    def _receive_data(
+        device: str,
+        gps: tuple[float, float],
+        battery: float,
+        accuracy: float,
+        attrs: dict[str, Any],
+    ) -> None:
         """Receive set location."""
         if device in hass.data[GPL_DOMAIN]["devices"]:
             return
@@ -64,7 +71,7 @@ async def async_setup_entry(
     entities = []
     for dev_id in dev_ids:
         hass.data[GPL_DOMAIN]["devices"].add(dev_id)
-        entity = GPSLoggerEntity(dev_id, None, None, None, None)
+        entity = GPSLoggerEntity(dev_id)
         entities.append(entity)
 
     async_add_entities(entities)
@@ -75,45 +82,51 @@ class GPSLoggerEntity(TrackerEntity, RestoreEntity):
 
     _attr_has_entity_name = True
     _attr_name = None
-    _prv_seen: datetime | None = None
 
-    def __init__(self, device, location, battery, accuracy, attributes):
+    def __init__(
+        self,
+        device: str,
+        location: tuple[float, float] | None = None,
+        battery: float | None = None,
+        accuracy: float | None = None,
+        attributes: dict[str, Any] | None = None,
+    ) -> None:
         """Set up GPSLogger entity."""
-        self._accuracy = accuracy or 0
-        self._attributes = attributes
+        self._accuracy = round(accuracy or 0)
+        self._attributes = attributes or {}
         self._name = device
-        self._battery = battery
+        self._battery = None if battery is None else int(battery)
         self._location = location
         self._unique_id = device
-        self._prv_seen = attributes and attributes.get(ATTR_LAST_SEEN)
+        self._prv_seen = cast(datetime | None, self._attributes.get(ATTR_LAST_SEEN))
 
     @property
-    def battery_level(self):
+    def battery_level(self) -> int | None:
         """Return battery value of the device."""
         return self._battery
 
     @property
-    def extra_state_attributes(self):
+    def extra_state_attributes(self) -> Mapping[str, Any] | None:
         """Return device specific attributes."""
         return self._attributes
 
     @property
-    def latitude(self):
+    def latitude(self) -> float | None:
         """Return latitude value of the device."""
-        return self._location[0]
+        return self._location and self._location[0]
 
     @property
-    def longitude(self):
+    def longitude(self) -> float | None:
         """Return longitude value of the device."""
-        return self._location[1]
+        return self._location and self._location[1]
 
     @property
-    def location_accuracy(self):
+    def location_accuracy(self) -> int:
         """Return the gps accuracy of the device."""
         return self._accuracy
 
     @property
-    def unique_id(self):
+    def unique_id(self) -> str | None:
         """Return the unique ID."""
         return self._unique_id
 
@@ -126,7 +139,7 @@ class GPSLoggerEntity(TrackerEntity, RestoreEntity):
         )
 
     @property
-    def source_type(self) -> SourceType:
+    def source_type(self) -> SourceType | str:
         """Return the source type, eg gps or router, of the device."""
         return SourceType.GPS
 
@@ -144,7 +157,7 @@ class GPSLoggerEntity(TrackerEntity, RestoreEntity):
             return
 
         if (state := await self.async_get_last_state()) is None:
-            self._location = (None, None)
+            self._location = None
             self._accuracy = 0
             self._attributes = {
                 ATTR_ACTIVITY: None,
@@ -160,8 +173,13 @@ class GPSLoggerEntity(TrackerEntity, RestoreEntity):
             return
 
         attr = state.attributes
-        self._location = (attr.get(ATTR_LATITUDE), attr.get(ATTR_LONGITUDE))
-        self._accuracy = attr.get(ATTR_GPS_ACCURACY, 0)
+        lat = cast(float | None, attr.get(ATTR_LATITUDE))
+        lon = cast(float | None, attr.get(ATTR_LONGITUDE))
+        if lat is not None and lon is not None:
+            self._location = (lat, lon)
+        else:
+            self._location = None
+        self._accuracy = round(attr.get(ATTR_GPS_ACCURACY) or 0)
         # Python datetime objects are saved/restored as strings.
         # Convert back to datetime object.
         restored_last_seen = cast(str | None, attr.get(ATTR_LAST_SEEN))
@@ -179,10 +197,18 @@ class GPSLoggerEntity(TrackerEntity, RestoreEntity):
             ATTR_PROVIDER: attr.get(ATTR_PROVIDER),
             ATTR_SPEED: attr.get(ATTR_SPEED),
         }
-        self._battery = attr.get(ATTR_BATTERY_LEVEL)
+        battery = attr.get(ATTR_BATTERY_LEVEL)
+        self._battery = None if battery is None else round(battery)
 
     @callback
-    def _async_receive_data(self, device, location, battery, accuracy, attributes):
+    def _async_receive_data(
+        self,
+        device: str,
+        location: tuple[float, float],
+        battery: float,
+        accuracy: float,
+        attributes: dict[str, Any],
+    ) -> None:
         """Mark the device as seen."""
         if device != self._name:
             return
@@ -198,8 +224,8 @@ class GPSLoggerEntity(TrackerEntity, RestoreEntity):
             return
 
         self._location = location
-        self._battery = battery
-        self._accuracy = accuracy or 0
+        self._battery = round(battery)
+        self._accuracy = round(accuracy)
         self._attributes.update(attributes)
         self._prv_seen = last_seen
         self.async_write_ha_state()
