@@ -99,6 +99,8 @@ class GPSLoggerEntity(TrackerEntity, RestoreEntity):
         self._location = location
         self._unique_id = device
         self._prv_seen = cast(datetime | None, self._attributes.get(ATTR_LAST_SEEN))
+        if self._prv_seen is not None:
+            self._prv_seen = dt_util.as_utc(self._prv_seen)
 
     @property
     def battery_level(self) -> int | None:
@@ -139,7 +141,7 @@ class GPSLoggerEntity(TrackerEntity, RestoreEntity):
         )
 
     @property
-    def source_type(self) -> SourceType | str:
+    def source_type(self) -> SourceType:
         """Return the source type, eg gps or router, of the device."""
         return SourceType.GPS
 
@@ -187,7 +189,10 @@ class GPSLoggerEntity(TrackerEntity, RestoreEntity):
             last_seen = dt_util.parse_datetime(restored_last_seen)
         else:
             last_seen = None
-        self._prv_seen = last_seen
+        if last_seen is None:
+            self._prv_seen = None
+        else:
+            self._prv_seen = dt_util.as_utc(last_seen)
         self._attributes = {
             ATTR_ACTIVITY: attr.get(ATTR_ACTIVITY),
             ATTR_ALTITUDE: attr.get(ATTR_ALTITUDE),
@@ -214,12 +219,14 @@ class GPSLoggerEntity(TrackerEntity, RestoreEntity):
             return
 
         last_seen = cast(datetime | None, attributes.get(ATTR_LAST_SEEN))
+        if last_seen is not None:
+            last_seen = dt_util.as_utc(last_seen)
         if self._prv_seen and last_seen and last_seen < self._prv_seen:
             _LOGGER.debug(
                 "%s: Skipping update because last_seen went backwards: %s < %s",
                 self.entity_id,
-                last_seen,
-                self._prv_seen,
+                dt_util.as_local(last_seen),
+                dt_util.as_local(self._prv_seen),
             )
             return
 
