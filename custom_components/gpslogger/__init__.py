@@ -74,7 +74,7 @@ async def async_setup(hass: HomeAssistant, _: ConfigType) -> bool:
     hass.data[DOMAIN] = {"devices": set(), "warned_no_last_seen": False}
     ent_reg = er.async_get(hass)
 
-    async def device_work_around(_: Event) -> None:
+    async def device_work_around(event: Event) -> None:
         """Work around for device tracker component deleting devices.
 
         Applies to HA versions prior to 2024.5:
